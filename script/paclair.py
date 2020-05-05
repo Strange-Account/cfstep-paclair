@@ -97,12 +97,25 @@ def main(command):
     token = os.getenv('TOKEN')
     token_type = os.getenv('TOKEN_TYPE', 'Bearer')
     token_url = os.getenv('TOKEN_URL')
+    keyfile_path = os.getenv('GOOGLE_KEYFILE')
+    keyfile_path_encoded = os.getenv('GOOGLE_KEYFILE_ENCODED')
+    google_project = os.getenv('GOOGLE_PROJECT')
 
     # Build paclair config
 
     if registry == 'ecr':
         registry, token, token_type, token_url = get_ecr_credentials(image)
         cf_account = None
+    elif registry.endswith("gcr.io"):
+        registry_username="_json_key"
+        cf_account = None
+        if keyfile_path:
+            print("Reading Keyfile")
+            with open(keyfile_path, 'r') as file:
+                registry_password = file.read()
+        elif keyfile_path_encoded:
+            print("Decoding Keyfile from env")
+            registry_password = base64.b64decode(keyfile_path_encoded)
     else:
         cf_account = os.getenv('CF_ACCOUNT')
 
@@ -135,6 +148,8 @@ def main(command):
 
     if cf_account:
         full_registry = '/'.join([registry, cf_account])
+    elif google_project:
+        full_registry = '/'.join([registry, google_project])
     else:
         full_registry = registry
     
